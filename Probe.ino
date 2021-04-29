@@ -7,8 +7,8 @@
 
 const char* apSsid     = "MyMesh";
 const char* apPassword = "123456";
-const char* clientSsid     = "Dasa";
-const char* clientPassword = "2222266666";
+const char* clientSsid     = "----------";
+const char* clientPassword = "-----------";
 
 // firebase authentication
 #define FIREBASE_HOST "proberequest-finalproject-default-rtdb.firebaseio.com"
