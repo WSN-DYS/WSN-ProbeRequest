@@ -4,11 +4,13 @@
 #include <ESP8266HTTPClient.h>
 #include <vector>
 #include <FirebaseArduino.h>
+#include <time.h>
+
 
 const char* apSsid     = "MyMesh";
 const char* apPassword = "123456";
-const char* clientSsid     = "----------";
-const char* clientPassword = "-----------";
+const char* clientSsid     = "Enter local network SSID";
+const char* clientPassword = "enter local network PASS";
 
 // firebase authentication
 #define FIREBASE_HOST "proberequest-finalproject-default-rtdb.firebaseio.com"
@@ -37,6 +39,7 @@ void setup() {
   WiFi.persistent(false);
 
   WiFi.mode(WIFI_AP_STA);
+  
   WiFi.softAP(apSsid, apPassword);
   WiFi.begin(clientSsid, clientPassword);
   while (WiFi.status() != WL_CONNECTED) {
@@ -47,30 +50,53 @@ void setup() {
   
   Serial.println("");
   probeRequestPrintHandler = WiFi.onSoftAPModeProbeRequestReceived(&onProbeRequestPrint);
-
+  
+  //TIME SET
+  configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+  Serial.println("\nWaiting for time");
+  while (!time(nullptr)) {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println("");
   
 }
-
+int channel = 1;
 void loop() {
-  delay(3000);
+
+  //create the Json object fot the users information
   String json = "";
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
   JsonArray& probes = root.createNestedArray("probes");
+
+  //channel changeing
+  WiFi.softAP(apSsid, apPassword,(channel%13) +1);
+  channel +=1;
+
+ //get all probe requests and send to firebase
   for(WiFiEventSoftAPModeProbeRequestReceived w : myList){
+    
+    //create Json structure to the user information and enter thr information
     JsonObject& probe = probes.createNestedObject();
-    probe["address"] = macToString(w.mac);
+    time_t now = time(nullptr);
+    probe["Sensor MAC"] = WiFi.macAddress();
+    probe["MAC"] = macToString(w.mac);
     probe["rssi"] = w.rssi;
-    //Firebase.setString("Users/"+macToString(w.mac),"RSSI/"+w.rssi);
-    Firebase.set("Users/"+macToString(w.mac),probe);
-    //Firebase.setString("Users:/" +macToString(w.mac),"RSSI"+w.rssi);
+    probe["Time"] = ctime(&now);
+    
+    
+
+    //push to firebase database
+    Firebase.set("Users/"+WiFi.macAddress()+"/"+macToString(w.mac),probe);
+    
     // handle error
     if (Firebase.failed()) {
       Serial.print("setting /message failed:");
       Serial.println(Firebase.error());  
       return;
     }
-    delay(100);
+    delay(30000);//delay for 30 seconds 
   }
   Serial.println("json:" + json);
 
