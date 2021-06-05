@@ -125,7 +125,6 @@ void loop() {
     //Serial.println(channels[current_channel]);
     delay(1000);// delay for one second
   
-     
       
    //get all probe requests and send to firebase
     for(WiFiEventSoftAPModeProbeRequestReceived w : myList){
