@@ -12,12 +12,12 @@ const char* apSsid     = "MyMesh";
 const char* apPassword = "123456";
 
 //The info for connecting as a client to WiFi access point
-const char* clientSsid     = "Dasa";
-const char* clientPassword = "2222266666";
+const char* clientSsid     = "Enter your ssid";
+const char* clientPassword = "Enter your password";
 
 // firebase authentication
-#define FIREBASE_HOST "proberequest-finalproject-default-rtdb.firebaseio.com"
-#define FIREBASE_AUTH "0b7kce2wu4NUsRNb1DEY3V7r8NNYYdVqxblZhXLd"
+#define FIREBASE_HOST "Enter your firebase host"
+#define FIREBASE_AUTH "Enter your firebase authentication"
 
 //Define blinking LED
 #define LED 2
@@ -101,10 +101,10 @@ void setup() {
 }
 
 int channel = 0;
-std::vector<int> channels (13,4); //vector to count the probe channels
+std::vector<int> channels (13,4); //vector to count the probe channels, at the begining set for 4 second to each channel
 std::vector<int> sum_of_all_probes_channels (13,0); //vector to count the probe channels
-int counter = 0;
-int current_channel = 0;
+int counter = 0; // counter for the seconds
+int current_channel = 0; // current channel that will be set and scanned
   
 
 void loop() {
@@ -116,16 +116,14 @@ void loop() {
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
   JsonArray& probes = root.createNestedArray("probes");
-  
-  //print_vector(channels);
+ 
   //channel changeing for getting all the probes in all channels
   while(counter <= channels[current_channel]){
+    
+    //Creating sodtAP to recieve the probe requests in the specific channel
     WiFi.softAP(apSsid, apPassword,current_channel +1);
-    //channel +=1;
-    //Serial.println(channels[current_channel]);
     delay(1000);// delay for one second
   
-      
    //get all probe requests and send to firebase
     for(WiFiEventSoftAPModeProbeRequestReceived w : myList){
       
@@ -160,22 +158,24 @@ void loop() {
       Serial.println(current_channel +1);
     }
     
-    
-    //pushing to the database the mac asdresses and the rssi
+    //pushing to the database the mac addresses and the rssi
     myList.clear();
     root.printTo(json);
     digitalWrite(LED, LOW);
     
     delay(1000);//delay for 1 seconds
+    
+    //add 2 seconds to the seconds counter
     counter+=2;
   }
   counter = 0;
   current_channel +=1;
-
-  if(current_channel ==13){
+  
+  //when reaching to channel 13 return to channel 1 and use the noemallize algo
+  if(current_channel ==12){
     current_channel =0;
     normilized_channels(channels);
-    Serial.println("Toal vector of probes: ");
+    Serial.println("Total vector of probes: ");
     print_vector(sum_of_all_probes_channels);
   }
 }
