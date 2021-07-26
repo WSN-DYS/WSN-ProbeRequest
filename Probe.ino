@@ -1,9 +1,8 @@
-#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
 #include <vector>
-#include <FirebaseArduino.h>
+#include <FirebaseESP8266.h>
 #include <time.h>
 #include "Hash.h" //for the encryption of the mac address
 
@@ -12,12 +11,19 @@ const char* apSsid     = "MyMesh";
 const char* apPassword = "123456";
 
 //The info for connecting as a client to WiFi access point
-const char* clientSsid     = "Enter your ssid";
-const char* clientPassword = "Enter your password";
+//const char* clientSsid     = "BIU-WIFIH";
+//const char* clientPassword = "Gil123456";
+
+const char* clientSsid     = "Dasa";
+const char* clientPassword = "2222266666";
 
 // firebase authentication
-#define FIREBASE_HOST "Enter your firebase host"
-#define FIREBASE_AUTH "Enter your firebase authentication"
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+#define FIREBASE_HOST "proberequest-finalproject-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "0b7kce2wu4NUsRNb1DEY3V7r8NNYYdVqxblZhXLd"
+#define DATABASE_SECRET "DATABASE_SECRET"
 
 //Define blinking LED
 #define LED 2
@@ -84,7 +90,14 @@ void setup() {
     delay(100);
   }
   //connect to firebase
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH); // connect to the firebase database
+  
+  // Define the FirebaseConfig data for config data
+  config.database_url = "proberequest-finalproject-default-rtdb.firebaseio.com";
+  config.signer.tokens.legacy_token = "0b7kce2wu4NUsRNb1DEY3V7r8NNYYdVqxblZhXLd";
+  
+  //Assign the project host and api key 
+  Firebase.reconnectWiFi(true);
+  Firebase.begin(&config, &auth);
   
   Serial.println("");
   probeRequestPrintHandler = WiFi.onSoftAPModeProbeRequestReceived(&onProbeRequestPrint);
@@ -101,10 +114,10 @@ void setup() {
 }
 
 int channel = 0;
-std::vector<int> channels (13,4); //vector to count the probe channels, at the begining set for 4 second to each channel
+std::vector<int> channels (13,4); //vector to count the probe channels
 std::vector<int> sum_of_all_probes_channels (13,0); //vector to count the probe channels
-int counter = 0; // counter for the seconds
-int current_channel = 0; // current channel that will be set and scanned
+int counter = 0;
+int current_channel = 0;
   
 
 void loop() {
@@ -112,70 +125,79 @@ void loop() {
   //create the Json object fot the users information
   String json = "";
 
-  //all the information saved in a json structure fot the firebase database
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
-  JsonArray& probes = root.createNestedArray("probes");
- 
-  //channel changeing for getting all the probes in all channels
   while(counter <= channels[current_channel]){
-    
-    //Creating sodtAP to recieve the probe requests in the specific channel
     WiFi.softAP(apSsid, apPassword,current_channel +1);
     delay(1000);// delay for one second
   
+      
    //get all probe requests and send to firebase
     for(WiFiEventSoftAPModeProbeRequestReceived w : myList){
-      
-      //create Json structure to the user information and enter thr information
-      JsonObject& probe = probes.createNestedObject();
+
+    
+      //creating FireBase json object
+      FirebaseJson json1;
+      FirebaseJson date;
+
+      //creating time and substract the /n from it
       time_t now = time(nullptr);
-      //all the information from the probe requetsts gathered here before pushed to the firebase
-      probe["Sensor MAC"] = WiFi.macAddress(); // the sendor MAC
-      probe["MAC"] = macToString(w.mac);//The client Mac
-      probe["MAC-SHA1"] = sha1(macToString(w.mac));//Client mac hash
-      probe["rssi"] = w.rssi;//The signal strength from the esp
-      probe["Time"] = ctime(&now);// the time the probe catched
-      probe["Channel"] = (current_channel +1);//which channel the probe request was sent from
+      String timeNow = String(ctime(&now));
+      timeNow.replace("\n","");
+
+      //adding all the new variables to the json object
+      json1.add("Sensor MAC",String(WiFi.macAddress()));
+      json1.add("MAC",String(macToString(w.mac)));
+      json1.add("MAC-SHA1",String(sha1(macToString(w.mac))));
+      json1.add("RSSI",String(w.rssi));
+      date.add(timeNow,timeNow);
+      json1.add("Channel",String((current_channel +1)));
       
+     
       //counting the number of each channel probes and the total vector for the statistics
       channels[current_channel]+=1;
       sum_of_all_probes_channels[current_channel] +=1;
       
       //push to firebase database
-      Firebase.set("Users/"+WiFi.macAddress()+"/"+macToString(w.mac),probe);
+      String path = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac);//converting to const char for the push function path
+      Firebase.RTDB.set(&fbdo, path.c_str() , &json1) ? "ok" : fbdo.errorReason().c_str();
+
+      // push the date for each probe request
+      String timePath = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac)+"/Time";
+      Firebase.RTDB.set(&fbdo, timePath.c_str() , &date) ? "ok" : fbdo.errorReason().c_str();
       
-      // handle error
-      if (Firebase.failed()) {
-        Serial.print("setting /message failed:");
-        Serial.println(Firebase.error());  
-        return;
+      if(Firebase.RTDB.get(&fbdo, path.c_str())){
+         String tempDate = fbdo.jsonString();
+         Serial.println(tempDate);
+         Serial.println("1");
       }
+         
       
-      //print on the serial for testing the esp
-      Serial.println(macToString(w.mac));
-      Serial.println(sha1(macToString(w.mac)));
-      Serial.println(current_channel +1);
+      
+      
+      //printing to serial the json object
+      String jsonStr;
+      json1.toString(jsonStr, true);
+      Serial.println(jsonStr);
+      Serial.println();
+      
     }
     
-    //pushing to the database the mac addresses and the rssi
+    
+    //clear the list from all old mac addresses found
     myList.clear();
-    root.printTo(json);
     digitalWrite(LED, LOW);
     
     delay(1000);//delay for 1 seconds
-    
-    //add 2 seconds to the seconds counter
-    counter+=2;
+    counter+=2;//add 2 seconds to timer
   }
+  //counter to zero to count number of probes in net channel and move the current channel one up
   counter = 0;
   current_channel +=1;
-  
-  //when reaching to channel 13 return to channel 1 and use the noemallize algo
-  if(current_channel ==12){
+
+  // using the normalize algo 
+  if(current_channel ==13){
     current_channel =0;
     normilized_channels(channels);
-    Serial.println("Total vector of probes: ");
+    Serial.println("Toal vector of probes: ");
     print_vector(sum_of_all_probes_channels);
   }
 }
