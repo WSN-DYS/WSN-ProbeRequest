@@ -35,7 +35,9 @@ db = firebase.database()
 #while loop that can run in the background and collect the data,
 #in each period of time the user want 
 while(True):
+	
 	# creating a dictionary for the values from the database
+	usersFrom ={}
 	usersFrom = dict(db.child("Users").get().val()) 
 
 	# remove all the old data to make spave in the database
@@ -48,7 +50,7 @@ while(True):
 	# creating a rew in csv file for each probe request collected
 	#the file saved in created folder named DATA in the same folder this script is running from
 	for sensor in usersFrom.keys():
-	pd.DataFrame.from_dict(usersFrom[sensor], orient ='index').to_csv("DATA/probeRequest"+str(current_time)+".csv",mode='a')
+		pd.DataFrame.from_dict(usersFrom[sensor], orient ='index').to_csv("DATA/probeRequest"+str(current_time)+".csv",mode='a')
 
 	# a timer for exporting the data currently set to one day
 	time.sleep(24*60*60)
