@@ -6,6 +6,9 @@
 #include <time.h>
 #include "Hash.h" //for the encryption of the mac address
 
+//the sensor location 
+String location = "32.0907068, 34.80651359";
+
 //creating the AP of the esp8266
 const char* apSsid     = "MyMesh";
 const char* apPassword = "123456";
@@ -113,6 +116,9 @@ void setup() {
     delay(1000);
   }
   Serial.println("");
+
+
+  
   
 }
 
@@ -124,6 +130,12 @@ int current_channel = 0;
   
 
 void loop() {
+  String pathLocation = "/Users/"+WiFi.macAddress()+"/";//converting to const char for the push function path
+  FirebaseJson locationJson;//for the updated date
+  locationJson.add("Location",location);
+  Firebase.RTDB.set(&fbdo, pathLocation.c_str() , &locationJson) ? "ok" : fbdo.errorReason().c_str();
+
+  
   digitalWrite(LED, HIGH);
   //create the Json object fot the users information
   String json = "";
@@ -221,4 +233,14 @@ void loop() {
     Serial.println("Toal vector of probes: ");
     print_vector(sum_of_all_probes_channels);
   }
+
+  //Creating for each sensor the data and upload to firebase, export as kml and open in google earth
+  String pathKML = "/Sensors/"+WiFi.macAddress();//converting to const char for the push function path
+  
+
+
+
+  
+
+  
 }
