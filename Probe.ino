@@ -14,10 +14,11 @@ const char* apPassword = "123456";
 //const char* clientSsid     = "BIU-WIFIH";
 //const char* clientPassword = "Gil123456";
 
+//connection details: WIFI name and password ** change for your wifi name and pass
 const char* clientSsid     = "Dasa";
 const char* clientPassword = "2222266666";
 
-// firebase authentication
+// firebase authentication ** change for your firebase connection details
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
@@ -28,6 +29,7 @@ FirebaseConfig config;
 //Define blinking LED
 #define LED 2
 
+//the wifi handker for catching the probe requests
 WiFiEventHandler probeRequestPrintHandler;
 
 //convert from char* to string the mac address
@@ -44,7 +46,7 @@ void onProbeRequestPrint(const WiFiEventSoftAPModeProbeRequestReceived& evt) {
   myList.push_back(evt);
 }
 
-//function that gets the channels priority and return them normilized for 1 minute.
+//function that gets the channels priority and return them normilized for 1 minute routine.
 void normilized_channels(std::vector<int> &channels){
   float sum_of_all = 0;
   for(auto i = channels.begin(); i!= channels.end() ; i++){
@@ -58,6 +60,7 @@ void normilized_channels(std::vector<int> &channels){
   print_vector(channels); 
 }
 
+//printing the channels vector with the number of probe request for each channel
 void print_vector(std::vector<int> channels){
   for(int i = 0; i <13 ;  i++){
     Serial.print("number in channel ");
@@ -72,24 +75,24 @@ void setup() {
   pinMode(LED, OUTPUT);
   Serial.println("Hello!");
 
-  // Don't save WiFi configuration in flash - optional
+  //Don't save WiFi configuration in flash - optional
   WiFi.persistent(false);
 
  
   WiFi.mode(WIFI_AP_STA);// start the esp on station ap mode
   
-  // create access point 
+  //Create access point 
   WiFi.softAP(apSsid, apPassword);
   
-  // conect to wifi AP
+  //Conect to wifi AP
   WiFi.begin(clientSsid,clientPassword);
 
-  //check the connection to the internet
+  //Check the connection to the internet
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(100);
   }
-  //connect to firebase
+  //Connect to firebase
   
   // Define the FirebaseConfig data for config data
   config.database_url = "proberequest-finalproject-default-rtdb.firebaseio.com";
@@ -102,9 +105,9 @@ void setup() {
   Serial.println("");
   probeRequestPrintHandler = WiFi.onSoftAPModeProbeRequestReceived(&onProbeRequestPrint);
   
-  //TIME SET
+  //Time Set
   configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
-  Serial.println("\nWaiting for time to restart");
+  Serial.println("\nWaiting for time update");
   while (!time(nullptr)) {
     Serial.print(".");
     delay(1000);
@@ -135,21 +138,22 @@ void loop() {
 
     
       //creating FireBase json object
-      FirebaseJson json1;
+      FirebaseJson probe;
       FirebaseJson date;
-
+      FirebaseJson RSSI;
+      
       //creating time and substract the /n from it
       time_t now = time(nullptr);
       String timeNow = String(ctime(&now));
       timeNow.replace("\n","");
 
       //adding all the new variables to the json object
-      json1.add("Sensor MAC",String(WiFi.macAddress()));
-      json1.add("MAC",String(macToString(w.mac)));
-      json1.add("MAC-SHA1",String(sha1(macToString(w.mac))));
-      json1.add("RSSI",String(w.rssi));
-      date.add(timeNow,timeNow);
-      json1.add("Channel",String((current_channel +1)));
+      probe.add("Sensor MAC",String(WiFi.macAddress()));
+      probe.add("MAC",String(macToString(w.mac)));
+      probe.add("MAC-SHA1",String(sha1(macToString(w.mac))));
+      RSSI.add("RSSI",String(w.rssi));
+      date.add("Time",timeNow);
+      probe.add("Channel",String((current_channel +1)));
       
      
       //counting the number of each channel probes and the total vector for the statistics
@@ -158,27 +162,44 @@ void loop() {
       
       //push to firebase database
       String path = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac);//converting to const char for the push function path
-      Firebase.RTDB.set(&fbdo, path.c_str() , &json1) ? "ok" : fbdo.errorReason().c_str();
-
-      // push the date for each probe request
       String timePath = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac)+"/Time";
-      Firebase.RTDB.set(&fbdo, timePath.c_str() , &date) ? "ok" : fbdo.errorReason().c_str();
+      String RSSIPath = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac) + "/RSSI";
+        
+
       
-      if(Firebase.RTDB.get(&fbdo, path.c_str())){
-         String tempDate = fbdo.jsonString();
-         Serial.println(tempDate);
-         Serial.println("1");
+      //check if the mac address in already exists  
+      if(Firebase.getString(fbdo,path + "/MAC")){
+        
+        FirebaseJson date2;//for the updated date
+        FirebaseJson RSSI2;//for the updated rssi
+        
+        //update the date for existing address
+        Firebase.RTDB.get(&fbdo, timePath.c_str());
+        String tempDate = fbdo.jsonString();
+        delay(500);
+        tempDate = tempDate.substring(9,tempDate.length()-2);
+        timeNow = timeNow +", " + tempDate;
+        date2.add("Time",timeNow);
+        Firebase.RTDB.updateNode(&fbdo, timePath.c_str() , &date2 ) ? "ok" : fbdo.errorReason().c_str();  
+
+        //update rssi for exist address
+        Firebase.RTDB.get(&fbdo, RSSIPath.c_str());
+        String newRSSI = fbdo.jsonString();
+        delay(500);
+        String tempRSSI = newRSSI.substring(9,newRSSI.length()-2);
+        newRSSI = String(w.rssi) + ", " + tempRSSI;
+        RSSI2.add("RSSI",newRSSI);
+        Firebase.RTDB.updateNode(&fbdo, RSSIPath.c_str() , &RSSI2 ) ? "ok" : fbdo.errorReason().c_str();  
+        delay(500);
+        
+      }else{
+        //if the address not exist in the database push new json object
+        Firebase.RTDB.set(&fbdo, path.c_str() , &probe) ? "ok" : fbdo.errorReason().c_str();
+        Firebase.RTDB.set(&fbdo, timePath.c_str() , &date ) ? "ok" : fbdo.errorReason().c_str();
+        Firebase.RTDB.set(&fbdo, RSSIPath.c_str() , &RSSI ) ? "ok" : fbdo.errorReason().c_str();
+      
+      
       }
-         
-      
-      
-      
-      //printing to serial the json object
-      String jsonStr;
-      json1.toString(jsonStr, true);
-      Serial.println(jsonStr);
-      Serial.println();
-      
     }
     
     
