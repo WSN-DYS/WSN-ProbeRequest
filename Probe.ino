@@ -113,13 +113,10 @@ void setup() {
   Serial.println("\nWaiting for time update");
   while (!time(nullptr)) {
     Serial.print(".");
-    delay(1000);
+    delay(5000);//5 seconds to restart time value 
   }
   Serial.println("");
 
-
-  
-  
 }
 
 int channel = 0;
@@ -130,15 +127,18 @@ int current_channel = 0;
   
 
 void loop() {
-  String pathLocation = "/Users/"+WiFi.macAddress()+"/";//converting to const char for the push function path
-  FirebaseJson locationJson;//for the updated date
-  locationJson.add("Location",location);
-  Firebase.RTDB.set(&fbdo, pathLocation.c_str() , &locationJson) ? "ok" : fbdo.errorReason().c_str();
-
   
   digitalWrite(LED, HIGH);
   //create the Json object fot the users information
   String json = "";
+
+
+  String pathLocation = "/Users/"+WiFi.macAddress()+"/";//converting to const char for the push function path
+  FirebaseJson locationJson;//for the updated date
+  locationJson.add("Location",location);
+  Firebase.RTDB.set(&fbdo, pathLocation.c_str() , &locationJson) ? "ok" : fbdo.errorReason().c_str();
+  delay(1000);
+  
 
   while(counter <= channels[current_channel]){
     WiFi.softAP(apSsid, apPassword,current_channel +1);
@@ -209,7 +209,7 @@ void loop() {
         Firebase.RTDB.set(&fbdo, path.c_str() , &probe) ? "ok" : fbdo.errorReason().c_str();
         Firebase.RTDB.set(&fbdo, timePath.c_str() , &date ) ? "ok" : fbdo.errorReason().c_str();
         Firebase.RTDB.set(&fbdo, RSSIPath.c_str() , &RSSI ) ? "ok" : fbdo.errorReason().c_str();
-      
+    
       
       }
     }
@@ -234,12 +234,8 @@ void loop() {
     print_vector(sum_of_all_probes_channels);
   }
 
-  //Creating for each sensor the data and upload to firebase, export as kml and open in google earth
-  String pathKML = "/Sensors/"+WiFi.macAddress();//converting to const char for the push function path
-  
 
-
-
+ 
   
 
   
