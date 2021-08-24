@@ -7,19 +7,15 @@
 #include "Hash.h" //for the encryption of the mac address
 
 //the sensor location 
-String location = "32.0907068, 34.80651359";
+String location = "32.105562,35.211091";
 
 //creating the AP of the esp8266
 const char* apSsid     = "MyMesh";
 const char* apPassword = "123456";
 
-//The info for connecting as a client to WiFi access point
-//const char* clientSsid     = "BIU-WIFIH";
-//const char* clientPassword = "Gil123456";
-
 //connection details: WIFI name and password ** change for your wifi name and pass
-const char* clientSsid     = "Dasa";
-const char* clientPassword = "2222266666";
+const char* clientSsid = "Your ap access point";
+const char* clientPassword = "your ap password";
 
 // firebase authentication ** change for your firebase connection details
 FirebaseData fbdo;
@@ -88,6 +84,7 @@ void setup() {
   WiFi.softAP(apSsid, apPassword);
   
   //Conect to wifi AP
+  //
   WiFi.begin(clientSsid,clientPassword);
 
   //Check the connection to the internet
@@ -133,11 +130,11 @@ void loop() {
   String json = "";
 
 
-  String pathLocation = "/Users/"+WiFi.macAddress()+"/";//converting to const char for the push function path
-  FirebaseJson locationJson;//for the updated date
-  locationJson.add("Location",location);
-  Firebase.RTDB.set(&fbdo, pathLocation.c_str() , &locationJson) ? "ok" : fbdo.errorReason().c_str();
-  delay(1000);
+  //String pathLocation = "/Users/"+WiFi.macAddress()+"/";//converting to const char for the push function path
+  //FirebaseJson locationJson;//for the updated date
+  //locationJson.add("Location",location);
+  //Firebase.RTDB.updateNode(&fbdo, pathLocation.c_str() , &locationJson) ? "ok" : fbdo.errorReason().c_str();
+  //delay(1000);
   
 
   while(counter <= channels[current_channel]){
@@ -185,15 +182,17 @@ void loop() {
         FirebaseJson date2;//for the updated date
         FirebaseJson RSSI2;//for the updated rssi
         
+        delay(1000);
         //update the date for existing address
         Firebase.RTDB.get(&fbdo, timePath.c_str());
         String tempDate = fbdo.jsonString();
-        delay(500);
+        delay(1000);
         tempDate = tempDate.substring(9,tempDate.length()-2);
         timeNow = timeNow +", " + tempDate;
         date2.add("Time",timeNow);
         Firebase.RTDB.updateNode(&fbdo, timePath.c_str() , &date2 ) ? "ok" : fbdo.errorReason().c_str();  
 
+        delay(1000);
         //update rssi for exist address
         Firebase.RTDB.get(&fbdo, RSSIPath.c_str());
         String newRSSI = fbdo.jsonString();
@@ -233,10 +232,5 @@ void loop() {
     Serial.println("Toal vector of probes: ");
     print_vector(sum_of_all_probes_channels);
   }
-
-
- 
-  
-
   
 }

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 # npm install -g firebase-tools // Run in cmd in windows
 #pip install firebase
 #pip install gcloud
@@ -19,7 +17,6 @@ import pandas as pd
 import os
 import simplekml
 
-
 #configuration to the database Firebase
 config = {
   "apiKey": "AIzaSyA4fHNEMAnGEEJV87kFC0GHzMMRc0TatuA",
@@ -33,20 +30,24 @@ config = {
 firebase = Firebase(config)
 db = firebase.database()
 usersFrom = dict(db.child("Users").get().val())
-listOfLocations = {}
+listOfLocations = {"2C:F4:32:49:DB:50" :{ "name" : "2C:F4:32:49:DB:50" , "Location": "32.103968,35.209522"}
+                  ,"2C:F4:32:49:E4:A7" :{ "name" : "2C:F4:32:49:E4:A7" , "Location": "32.104937,35.211618"}
+                  ,"98:F4:AB:B2:60:2A" :{ "name" : "98:F4:AB:B2:60:2A" , "Location": "32.105562,35.211091"}
+                  ,"2C:F4:32:49:DB:57" :{ "name" : "2C:F4:32:49:DB:57" , "Location": "32.104008,35.207790"}
+                  ,"98:F4:AB:B2:61:AD" :{ "name" : "98:F4:AB:B2:61:AD" , "Location": "32.105103,35.206729"}}
 
-for sensor in usersFrom.keys():    
-    location = usersFrom[sensor]["Location"]
-    usersFrom[sensor].pop("Location")
-    listOfLocations[sensor] = {"location":location}
-    print(location)
+#for sensor in usersFrom.keys():    
+#    location = usersFrom[sensor]["Location"]
+#    usersFrom[sensor].pop("Location")
+#    listOfLocations[sensor] = {"location":location}
+#    print(location)
 
 while(True):
     dictionaryForPlot ={}
     db = firebase.database()
     usersFrom = dict(db.child("Users").get().val())
-    usersFrom[sensor].pop("Location")
-    print(usersFrom)
+    #usersFrom[sensor].pop("Location")
+    #print(usersFrom)
     db.child("Users").remove()
     now = datetime.now()
     current_time = (now.strftime("%m-%d-%y-%H-%M-%S"))
@@ -60,11 +61,10 @@ while(True):
 
 
         #creating kml file 
-        temp_location = tuple(float(x) for x in listOfLocations[sensor]["location"].split(","))
+        temp_location = tuple(float(x) for x in listOfLocations[sensor]["Location"].split(","))
         print(temp_location)
-        single_point = kml.newpoint(name=sensor, description = "The number of probe requests:" + str(listOfLocations[sensor]["numofprobes"]), coords=[temp_location[::-1]])
-    kml.save("DATA/00 Points.kml")
+        single_point = kml.newpoint(name=listOfLocations[sensor]["name"], description = str(listOfLocations[sensor]["numofprobes"])+ " probe requests caught", coords=[temp_location[::-1]])
+    kml.save( "DATA/"+current_time +" Points.kml")
         
     time.sleep(60*60)
-
 
