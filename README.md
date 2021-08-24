@@ -14,6 +14,6 @@ Python - A script for exporting information from the database to CSV
 
 Features
 1. Channel prioritization - In order to optimize the search on busy channels, we built an algorithm that prioritizes and gives more scanning time to channels that caught more requests in the previous run.
-2 Use SHA1 encryption to encrypt the MAC addresses of requests in order to maintain user privacy.
-3 Export a KML file that allows the components to be displayed on a Google earth map, in addition to displaying the number of requests for each sensor.
+2. Use SHA1 encryption to encrypt the MAC addresses of requests in order to maintain user privacy.
+3. Export a KML file that allows the components to be displayed on a Google earth map, in addition to displaying the number of requests for each sensor.
 4. Export all the information collected in the database to a CSV file at a frequency determined by the user
