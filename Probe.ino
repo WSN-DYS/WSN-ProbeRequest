@@ -6,24 +6,19 @@
 #include <time.h>
 #include "Hash.h" //for the encryption of the mac address
 
-//the sensor location 
-String location = "32.105562,35.211091";
 
 //creating the AP of the esp8266
-const char* apSsid     = "MyMesh";
-const char* apPassword = "123456";
+const char* apSsid     = "Enter your created AP name";
+const char* apPassword = "Enter your created AP password";
 
 //connection details: WIFI name and password ** change for your wifi name and pass
-const char* clientSsid = "Your ap access point";
-const char* clientPassword = "your ap password";
+const char* clientSsid = "Your AP name that you want to connect to";
+const char* clientPassword = "Your AP password that you want to connect to";
 
 // firebase authentication ** change for your firebase connection details
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
-#define FIREBASE_HOST "proberequest-finalproject-default-rtdb.firebaseio.com"
-#define FIREBASE_AUTH "0b7kce2wu4NUsRNb1DEY3V7r8NNYYdVqxblZhXLd"
-#define DATABASE_SECRET "DATABASE_SECRET"
 
 //Define blinking LED
 #define LED 2
@@ -40,12 +35,14 @@ String macToString(const unsigned char* mac) {
 }
 
 
-std::vector<WiFiEventSoftAPModeProbeRequestReceived> myList; // save all the probe requests found
+std::vector<WiFiEventSoftAPModeProbeRequestReceived> myList; // save all the probe requests found to the vector
 void onProbeRequestPrint(const WiFiEventSoftAPModeProbeRequestReceived& evt) {
-  myList.push_back(evt);
+  myList.push_back(evt); // push each request to the vector
 }
 
-//function that gets the channels priority and return them normilized for 1 minute routine.
+//Function that gets the channels priority and return them normilized for 1 minute routine.
+//Input: vector of number of probes collected for each channel
+//Return: the normalize vector
 void normilized_channels(std::vector<int> &channels){
   float sum_of_all = 0;
   for(auto i = channels.begin(); i!= channels.end() ; i++){
@@ -60,6 +57,8 @@ void normilized_channels(std::vector<int> &channels){
 }
 
 //printing the channels vector with the number of probe request for each channel
+//Input: vector of number of probes collected for each channel
+//Output: print the vector
 void print_vector(std::vector<int> channels){
   for(int i = 0; i <13 ;  i++){
     Serial.print("number in channel ");
@@ -69,22 +68,23 @@ void print_vector(std::vector<int> channels){
   }
 }
 
+//Setup function for the ESP
 void setup() {
+  
   Serial.begin(115200);
   pinMode(LED, OUTPUT);
   Serial.println("Hello!");
 
   //Don't save WiFi configuration in flash - optional
   WiFi.persistent(false);
-
- 
-  WiFi.mode(WIFI_AP_STA);// start the esp on station ap mode
+  
+  // start the esp on station ap mode
+  WiFi.mode(WIFI_AP_STA);
   
   //Create access point 
   WiFi.softAP(apSsid, apPassword);
   
   //Conect to wifi AP
-  //
   WiFi.begin(clientSsid,clientPassword);
 
   //Check the connection to the internet
@@ -94,7 +94,7 @@ void setup() {
   }
   //Connect to firebase
   
-  // Define the FirebaseConfig data for config data
+  //Define the FirebaseConfig data for config data
   config.database_url = "proberequest-finalproject-default-rtdb.firebaseio.com";
   config.signer.tokens.legacy_token = "0b7kce2wu4NUsRNb1DEY3V7r8NNYYdVqxblZhXLd";
   
@@ -102,7 +102,7 @@ void setup() {
   Firebase.reconnectWiFi(true);
   Firebase.begin(&config, &auth);
   
-  Serial.println("");
+  //Start the handler function for the collection of requests
   probeRequestPrintHandler = WiFi.onSoftAPModeProbeRequestReceived(&onProbeRequestPrint);
   
   //Time Set
