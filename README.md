@@ -12,11 +12,11 @@ In addition, we can use the information for business analysis, for example, to s
 - ESP8266 - A component that has a WiFi chip with which the requests are collected.
 <img src="https://user-images.githubusercontent.com/57191216/130618793-ce1d04dd-81c3-4684-9329-c0ed2e24ed27.png" width="100" height="120">
 - Arduino platform - a tool that enables chip programming.
-<img src="https://user-images.githubusercontent.com/57191216/130618791-7dc216e2-175b-415e-aec3-a65f4a176ca1.png" width="60" height="80">
+<img src="https://user-images.githubusercontent.com/57191216/130618791-7dc216e2-175b-415e-aec3-a65f4a176ca1.png" width="90" height="80">
 - Firebase - A database for storing the information collected.
-<img src="https://user-images.githubusercontent.com/57191216/130619865-687359f9-ae0e-40fa-b37b-c52c041a6b52.png" width="90" height="60">
+<img src="https://user-images.githubusercontent.com/57191216/130619865-687359f9-ae0e-40fa-b37b-c52c041a6b52.png" width="130" height="60">
 - Python - A script for exporting information from the database to CSV.
-<img src="https://user-images.githubusercontent.com/57191216/130619342-bff1c2fe-770d-47c3-90d9-b072e5b0184d.png" width="70" height="80">
+<img src="https://user-images.githubusercontent.com/57191216/130619342-bff1c2fe-770d-47c3-90d9-b072e5b0184d.png" width="130" height="80">
 
 ## Features:
 1. Channel prioritization - In order to optimize the search on busy channels, we built an algorithm that prioritizes and gives more scanning time to channels that caught more requests in the previous run.
