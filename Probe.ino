@@ -125,38 +125,32 @@ int current_channel = 0;
 
 void loop() {
   
+  // Turn on the LED light
   digitalWrite(LED, HIGH);
-  //create the Json object fot the users information
-  String json = "";
-
-
-  //String pathLocation = "/Users/"+WiFi.macAddress()+"/";//converting to const char for the push function path
-  //FirebaseJson locationJson;//for the updated date
-  //locationJson.add("Location",location);
-  //Firebase.RTDB.updateNode(&fbdo, pathLocation.c_str() , &locationJson) ? "ok" : fbdo.errorReason().c_str();
-  //delay(1000);
   
-
+  // Run the loop in each chnnel for the estimated time in the array position
   while(counter <= channels[current_channel]){
+    
+    // Create the access point
     WiFi.softAP(apSsid, apPassword,current_channel +1);
     delay(1000);// delay for one second
   
       
-   //get all probe requests and send to firebase
+   // For loop moving on all the requests collected
     for(WiFiEventSoftAPModeProbeRequestReceived w : myList){
 
     
-      //creating FireBase json object
+      // Creating FireBase json object
       FirebaseJson probe;
       FirebaseJson date;
       FirebaseJson RSSI;
       
-      //creating time and substract the /n from it
+      // Creating time and substract the /n from it
       time_t now = time(nullptr);
       String timeNow = String(ctime(&now));
       timeNow.replace("\n","");
 
-      //adding all the new variables to the json object
+      // Adding all the new variables to the json object
       probe.add("Sensor MAC",String(WiFi.macAddress()));
       probe.add("MAC",String(macToString(w.mac)));
       probe.add("MAC-SHA1",String(sha1(macToString(w.mac))));
@@ -165,46 +159,44 @@ void loop() {
       probe.add("Channel",String((current_channel +1)));
       
      
-      //counting the number of each channel probes and the total vector for the statistics
+      // Counting the number of each channel probes and the total vector for the statistics
       channels[current_channel]+=1;
       sum_of_all_probes_channels[current_channel] +=1;
       
-      //push to firebase database
+      // Push to firebase database
       String path = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac);//converting to const char for the push function path
       String timePath = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac)+"/Time";
       String RSSIPath = "/Users/"+WiFi.macAddress()+"/"+macToString(w.mac) + "/RSSI";
         
 
       
-      //check if the mac address in already exists  
+      // Check if the mac address in already exists  
       if(Firebase.getString(fbdo,path + "/MAC")){
         
-        FirebaseJson date2;//for the updated date
-        FirebaseJson RSSI2;//for the updated rssi
+        FirebaseJson date2;// For the new updated date
+        FirebaseJson RSSI2;// For the new updated rssi
         
-        delay(1000);
-        //update the date for existing address
+        
+        // Update the date for existing address
         Firebase.RTDB.get(&fbdo, timePath.c_str());
         String tempDate = fbdo.jsonString();
-        delay(1000);
+        
         tempDate = tempDate.substring(9,tempDate.length()-2);
         timeNow = timeNow +", " + tempDate;
         date2.add("Time",timeNow);
         Firebase.RTDB.updateNode(&fbdo, timePath.c_str() , &date2 ) ? "ok" : fbdo.errorReason().c_str();  
 
-        delay(1000);
-        //update rssi for exist address
+        // Get the old RSSI and add the new rssi for the exist address
         Firebase.RTDB.get(&fbdo, RSSIPath.c_str());
         String newRSSI = fbdo.jsonString();
-        delay(500);
         String tempRSSI = newRSSI.substring(9,newRSSI.length()-2);
         newRSSI = String(w.rssi) + ", " + tempRSSI;
         RSSI2.add("RSSI",newRSSI);
         Firebase.RTDB.updateNode(&fbdo, RSSIPath.c_str() , &RSSI2 ) ? "ok" : fbdo.errorReason().c_str();  
-        delay(500);
+        
         
       }else{
-        //if the address not exist in the database push new json object
+        // If the address doesnt exist in the database push new json object
         Firebase.RTDB.set(&fbdo, path.c_str() , &probe) ? "ok" : fbdo.errorReason().c_str();
         Firebase.RTDB.set(&fbdo, timePath.c_str() , &date ) ? "ok" : fbdo.errorReason().c_str();
         Firebase.RTDB.set(&fbdo, RSSIPath.c_str() , &RSSI ) ? "ok" : fbdo.errorReason().c_str();
@@ -214,18 +206,18 @@ void loop() {
     }
     
     
-    //clear the list from all old mac addresses found
+    // Clear the list from all old mac addresses found
     myList.clear();
     digitalWrite(LED, LOW);
     
-    delay(1000);//delay for 1 seconds
-    counter+=2;//add 2 seconds to timer
+    delay(1000);// Delay for 1 seconds
+    counter+=2;// Add 2 seconds to timer
   }
-  //counter to zero to count number of probes in net channel and move the current channel one up
+  // Reset the counter for counting the number of probes in each channel, and move the current channel forward
   counter = 0;
   current_channel +=1;
 
-  // using the normalize algo 
+  // Using the normalize algo 
   if(current_channel ==13){
     current_channel =0;
     normilized_channels(channels);
